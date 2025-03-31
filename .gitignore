@@ -1,0 +1,19 @@
+node_modules/
+.DS_Store
+.env
+*.log
+
+# Electron
+/dist
+/out
+/release
+
+# IDE specific
+.vscode/
+.idea/
+
+# System Files
+Thumbs.db
+
+# Debug
+npm-debug.log*
