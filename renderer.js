@@ -14,9 +14,15 @@ const cancelBtn = document.getElementById('cancelBtn');
 const confirmModal = document.getElementById('confirmModal');
 const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
 const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+const imageInput = document.getElementById('image');
+const imagePreview = document.getElementById('imagePreview');
+const imageModal = document.getElementById('imageModal');
+const previewImage = document.getElementById('previewImage');
+const imageModalClose = document.querySelector('.image-modal-close');
 
 // 当前选中的记录ID（用于编辑和删除操作）
 let currentRecordId = null;
+let currentImageData = null;
 
 // 初始化：加载所有记录
 loadRecords();
@@ -64,13 +70,16 @@ function renderRecords(records) {
     
     row.innerHTML = `
       <td>${formattedDate}</td>
-      <td>${record.type}</td>
       <td>${record.symbol}</td>
       <td>${record.direction}</td>
       <td>${record.openPrice}</td>
       <td>${record.closePrice}</td>
-      <td>${record.volume}</td>
+      <td>${record.amount}</td>
       <td class="${profitClass}">${record.profit}</td>
+      <td>
+        ${record.imagePath ? `<img src="file://${record.imagePath}" class="thumbnail" width="50" height="50">` : ''}
+      </td>
+      <td>${record.notes || ''}</td>
       <td>
         <button class="action-btn edit" data-id="${record.id}">编辑</button>
         <button class="action-btn delete" data-id="${record.id}">删除</button>
@@ -122,14 +131,27 @@ async function openEditModal(id) {
     // 填充表单
     document.getElementById('recordId').value = record.id;
     document.getElementById('date').value = record.date;
-    document.getElementById('type').value = record.type;
     document.getElementById('symbol').value = record.symbol;
     document.getElementById('direction').value = record.direction;
     document.getElementById('openPrice').value = record.openPrice;
     document.getElementById('closePrice').value = record.closePrice;
-    document.getElementById('volume').value = record.volume;
+    document.getElementById('amount').value = record.amount;
     document.getElementById('profit').value = record.profit;
     document.getElementById('notes').value = record.notes || '';
+    
+    // 显示已有图片
+    if (record.imagePath) {
+      const img = document.createElement('img');
+      img.src = `file://${record.imagePath}`;
+      img.alt = '交易图片';
+      imagePreview.innerHTML = '';
+      imagePreview.appendChild(img);
+      imagePreview.style.display = 'block';
+      currentImageData = record.imagePath;
+    } else {
+      imagePreview.style.display = 'none';
+      currentImageData = null;
+    }
     
     recordModal.style.display = 'block';
   } catch (error) {
@@ -144,6 +166,45 @@ function openDeleteConfirmation(id) {
   confirmModal.style.display = 'block';
 }
 
+// 处理图片预览
+function handleImagePreview(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = document.createElement('img');
+    img.src = e.target.result;
+    img.alt = '预览图片';
+    imagePreview.innerHTML = '';
+    imagePreview.appendChild(img);
+    imagePreview.style.display = 'block';
+    currentImageData = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// 处理图片粘贴
+function handleImagePaste(event) {
+  const items = event.clipboardData.items;
+  for (let item of items) {
+    if (item.type.indexOf('image') !== -1) {
+      const file = item.getAsFile();
+      handleImagePreview(file);
+      imageInput.files = new DataTransfer().files;
+      break;
+    }
+  }
+}
+
+// 打开图片预览模态框
+function openImagePreview(src) {
+  previewImage.src = src;
+  imageModal.style.display = 'block';
+}
+
+// 关闭图片预览模态框
+function closeImagePreview() {
+  imageModal.style.display = 'none';
+}
+
 // 保存记录（添加或更新）
 async function saveRecord(event) {
   event.preventDefault();
@@ -152,15 +213,19 @@ async function saveRecord(event) {
     // 收集表单数据
     const recordData = {
       date: document.getElementById('date').value,
-      type: document.getElementById('type').value,
       symbol: document.getElementById('symbol').value,
       direction: document.getElementById('direction').value,
       openPrice: parseFloat(document.getElementById('openPrice').value),
       closePrice: parseFloat(document.getElementById('closePrice').value),
-      volume: parseFloat(document.getElementById('volume').value),
+      amount: parseFloat(document.getElementById('amount').value),
       profit: parseFloat(document.getElementById('profit').value),
       notes: document.getElementById('notes').value
     };
+    
+    // 如果有图片数据，添加到记录中
+    if (currentImageData) {
+      recordData.imageData = currentImageData;
+    }
     
     // 如果是编辑模式，添加ID
     if (currentRecordId) {
@@ -231,7 +296,7 @@ window.addEventListener('click', (event) => {
 // 自动计算盈亏金额（可选功能）
 const openPriceInput = document.getElementById('openPrice');
 const closePriceInput = document.getElementById('closePrice');
-const volumeInput = document.getElementById('volume');
+const amountInput = document.getElementById('amount');
 const profitInput = document.getElementById('profit');
 const directionSelect = document.getElementById('direction');
 
@@ -239,18 +304,18 @@ const directionSelect = document.getElementById('direction');
 function calculateProfit() {
   const openPrice = parseFloat(openPriceInput.value) || 0;
   const closePrice = parseFloat(closePriceInput.value) || 0;
-  const volume = parseFloat(volumeInput.value) || 0;
+  const amount = parseFloat(amountInput.value) || 0;
   const direction = directionSelect.value;
   
-  if (openPrice && closePrice && volume && direction) {
+  if (openPrice && closePrice && amount && direction) {
     let profit = 0;
     
     if (direction === '多') {
-      // 多头：平仓价 - 开仓价
-      profit = (closePrice - openPrice) * volume;
+      // 多头：(平仓价 - 开仓价)/开仓价 * 开仓金额
+      profit = ((closePrice - openPrice) / openPrice) * amount;
     } else if (direction === '空') {
-      // 空头：开仓价 - 平仓价
-      profit = (openPrice - closePrice) * volume;
+      // 空头：(开仓价 - 平仓价)/开仓价 * 开仓金额
+      profit = ((openPrice - closePrice) / openPrice) * amount;
     }
     
     // 四舍五入到两位小数
@@ -261,5 +326,29 @@ function calculateProfit() {
 // 添加事件监听器
 openPriceInput.addEventListener('input', calculateProfit);
 closePriceInput.addEventListener('input', calculateProfit);
-volumeInput.addEventListener('input', calculateProfit);
+amountInput.addEventListener('input', calculateProfit);
 directionSelect.addEventListener('change', calculateProfit);
+
+// 图片相关事件监听
+imageInput.addEventListener('change', (e) => {
+  if (e.target.files.length > 0) {
+    handleImagePreview(e.target.files[0]);
+  }
+});
+
+imagePreview.addEventListener('click', (e) => {
+  if (e.target.tagName === 'IMG') {
+    openImagePreview(e.target.src);
+  }
+});
+
+imageModalClose.addEventListener('click', closeImagePreview);
+
+imageModal.addEventListener('click', (e) => {
+  if (e.target === imageModal) {
+    closeImagePreview();
+  }
+});
+
+// 添加粘贴事件监听
+document.addEventListener('paste', handleImagePaste);
