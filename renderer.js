@@ -109,7 +109,7 @@ function renderRecords(records) {
       <td>${record.actualClosePrice || '-'}</td>
       <td class="${profitClass}">${record.actualProfit || '-'}</td>
       <td>
-        ${record.imagePath ? `<img src="file://${record.imagePath}" class="thumbnail" width="50" height="50">` : ''}
+        ${record.imagePath ? `<img src="file://${record.imagePath}" class="thumbnail" width="50" height="50" style="cursor: pointer;" data-image-path="${record.imagePath}">` : ''}
       </td>
       <td>
         ${record.status === '持仓中' ? 
@@ -129,6 +129,14 @@ function renderRecords(records) {
   // 添加删除按钮的事件监听器
   document.querySelectorAll('.delete-btn').forEach(btn => {
     btn.addEventListener('click', () => openDeleteConfirmation(btn.dataset.id));
+  });
+
+  // 添加表格图片点击事件委托（添加在事件监听器部分）
+  recordsTable.addEventListener('click', (e) => {
+    if (e.target.tagName === 'IMG' && e.target.dataset.imagePath) {
+      const imagePath = e.target.dataset.imagePath;
+      openImagePreview(`file://${imagePath}`);
+    }
   });
 }
 
@@ -213,6 +221,8 @@ function handleImagePreview(file, previewElement = imagePreview) {
     const img = document.createElement('img');
     img.src = e.target.result;
     img.alt = '预览图片';
+    img.style.maxWidth = '100%';
+    img.style.maxHeight = '200px';
     previewElement.innerHTML = '';
     previewElement.appendChild(img);
     previewElement.style.display = 'block';
@@ -247,13 +257,20 @@ function handleImagePaste(event) {
 
 // 打开图片预览模态框
 function openImagePreview(src) {
-  previewImage.src = src;
+  // 如果是base64格式的图片数据，直接使用
+  if (src.startsWith('data:image')) {
+    previewImage.src = src;
+  } else {
+    // 如果是文件路径，确保添加file://协议
+    previewImage.src = src.startsWith('file://') ? src : `file://${src}`;
+  }
   imageModal.style.display = 'block';
 }
 
 // 关闭图片预览模态框
 function closeImagePreview() {
   imageModal.style.display = 'none';
+  previewImage.src = '';
 }
 
 // 打开完成交易模态框

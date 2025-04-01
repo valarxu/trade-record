@@ -49,59 +49,61 @@
         <form id="recordForm">
           <input type="hidden" id="recordId">
           
-          <div class="form-group">
-            <label for="date">交易日期 *</label>
-            <input type="date" id="date" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="symbol">交易品种 *</label>
-            <input type="text" id="symbol" placeholder="例如：黄金、原油、比特币等" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="direction">交易方向 *</label>
-            <select id="direction" required>
-              <option value="">请选择</option>
-              <option value="多">多</option>
-              <option value="空">空</option>
-            </select>
-          </div>
-          
-          <div class="form-group">
-            <label for="openPrice">开仓价格 *</label>
-            <input type="number" id="openPrice" step="0.0001" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="stopLossPrice">止损价格 *</label>
-            <input type="number" id="stopLossPrice" step="0.0001" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="takeProfitPrice">止盈价格 *</label>
-            <input type="number" id="takeProfitPrice" step="0.0001" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="riskRewardRatio">预期盈亏比</label>
-            <input type="text" id="riskRewardRatio" readonly>
-          </div>
-          
-          <div class="form-group">
-            <label for="amount">开仓金额 *</label>
-            <input type="number" id="amount" step="0.01" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="openReason">开仓理由 *</label>
-            <textarea id="openReason" rows="3" required></textarea>
-          </div>
-          
-          <div class="form-group">
-            <label for="image">K线截图 *</label>
-            <input type="file" id="image" accept="image/*" required>
-            <div id="imagePreview" class="image-preview"></div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="date">交易日期 *</label>
+              <input type="date" id="date" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="symbol">交易品种 *</label>
+              <input type="text" id="symbol" placeholder="例如：黄金、原油、比特币等" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="direction">交易方向 *</label>
+              <select id="direction" required>
+                <option value="">请选择</option>
+                <option value="多">多</option>
+                <option value="空">空</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="openPrice">开仓价格 *</label>
+              <input type="number" id="openPrice" step="0.0001" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="stopLossPrice">止损价格 *</label>
+              <input type="number" id="stopLossPrice" step="0.0001" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="takeProfitPrice">止盈价格 *</label>
+              <input type="number" id="takeProfitPrice" step="0.0001" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="riskRewardRatio">预期盈亏比</label>
+              <input type="text" id="riskRewardRatio" readonly>
+            </div>
+            
+            <div class="form-group">
+              <label for="amount">开仓金额 *</label>
+              <input type="number" id="amount" step="0.01" required>
+            </div>
+            
+            <div class="form-group full-width">
+              <label for="openReason">开仓理由 *</label>
+              <textarea id="openReason" rows="3" required></textarea>
+            </div>
+            
+            <div class="form-group full-width">
+              <label for="image">K线截图 *</label>
+              <input type="file" id="image" accept="image/*" required>
+              <div id="imagePreview" class="image-preview"></div>
+            </div>
           </div>
           
           <div class="form-actions">
@@ -120,69 +122,71 @@
         <form id="completeTradeForm">
           <input type="hidden" id="completeTradeId">
           
-          <div class="form-group">
-            <label for="completeDate">交易日期 *</label>
-            <input type="date" id="completeDate" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="completeSymbol">交易品种 *</label>
-            <input type="text" id="completeSymbol" placeholder="例如：黄金、原油、比特币等" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="completeDirection">交易方向 *</label>
-            <select id="completeDirection" required>
-              <option value="">请选择</option>
-              <option value="多">多</option>
-              <option value="空">空</option>
-            </select>
-          </div>
-          
-          <div class="form-group">
-            <label for="completeOpenPrice">开仓价格 *</label>
-            <input type="number" id="completeOpenPrice" step="0.0001" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="completeStopLossPrice">止损价格 *</label>
-            <input type="number" id="completeStopLossPrice" step="0.0001" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="completeTakeProfitPrice">止盈价格 *</label>
-            <input type="number" id="completeTakeProfitPrice" step="0.0001" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="completeRiskRewardRatio">预期盈亏比</label>
-            <input type="text" id="completeRiskRewardRatio" readonly>
-          </div>
-          
-          <div class="form-group">
-            <label for="completeAmount">开仓金额 *</label>
-            <input type="number" id="completeAmount" step="0.01" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="completeOpenReason">开仓理由 *</label>
-            <textarea id="completeOpenReason" rows="3" required></textarea>
-          </div>
-          
-          <div class="form-group">
-            <label for="completeImage">K线截图 *</label>
-            <input type="file" id="completeImage" accept="image/*">
-            <div id="completeImagePreview" class="image-preview"></div>
-          </div>
-          
-          <div class="form-group">
-            <label for="actualClosePrice">实际平仓价 *</label>
-            <input type="number" id="actualClosePrice" step="0.0001" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="reviewNotes">复盘记录 *</label>
-            <textarea id="reviewNotes" rows="3" required></textarea>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="completeDate">交易日期 *</label>
+              <input type="date" id="completeDate" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="completeSymbol">交易品种 *</label>
+              <input type="text" id="completeSymbol" placeholder="例如：黄金、原油、比特币等" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="completeDirection">交易方向 *</label>
+              <select id="completeDirection" required>
+                <option value="">请选择</option>
+                <option value="多">多</option>
+                <option value="空">空</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="completeOpenPrice">开仓价格 *</label>
+              <input type="number" id="completeOpenPrice" step="0.0001" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="completeStopLossPrice">止损价格 *</label>
+              <input type="number" id="completeStopLossPrice" step="0.0001" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="completeTakeProfitPrice">止盈价格 *</label>
+              <input type="number" id="completeTakeProfitPrice" step="0.0001" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="completeRiskRewardRatio">预期盈亏比</label>
+              <input type="text" id="completeRiskRewardRatio" readonly>
+            </div>
+            
+            <div class="form-group">
+              <label for="completeAmount">开仓金额 *</label>
+              <input type="number" id="completeAmount" step="0.01" required>
+            </div>
+
+            <div class="form-group">
+              <label for="actualClosePrice">实际平仓价 *</label>
+              <input type="number" id="actualClosePrice" step="0.0001" required>
+            </div>
+            
+            <div class="form-group full-width">
+              <label for="completeOpenReason">开仓理由 *</label>
+              <textarea id="completeOpenReason" rows="3" required></textarea>
+            </div>
+            
+            <div class="form-group full-width">
+              <label for="reviewNotes">复盘记录 *</label>
+              <textarea id="reviewNotes" rows="3" required></textarea>
+            </div>
+            
+            <div class="form-group full-width">
+              <label for="completeImage">K线截图 *</label>
+              <input type="file" id="completeImage" accept="image/*">
+              <div id="completeImagePreview" class="image-preview"></div>
+            </div>
           </div>
           
           <div class="form-actions">
