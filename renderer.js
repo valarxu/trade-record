@@ -14,6 +14,9 @@ const cancelBtn = document.getElementById('cancelBtn');
 const confirmModal = document.getElementById('confirmModal');
 const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
 const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+const completeTradeModal = document.getElementById('completeTradeModal');
+const completeTradeForm = document.getElementById('completeTradeForm');
+const cancelCompleteBtn = document.getElementById('cancelCompleteBtn');
 const imageInput = document.getElementById('image');
 const imagePreview = document.getElementById('imagePreview');
 const imageModal = document.getElementById('imageModal');
@@ -35,6 +38,30 @@ async function loadRecords() {
   } catch (error) {
     console.error('加载记录失败:', error);
     alert('加载记录失败，请重试');
+  }
+}
+
+// 计算预期盈亏比
+function calculateRiskRewardRatio() {
+  const openPrice = parseFloat(document.getElementById('openPrice').value) || 0;
+  const stopLossPrice = parseFloat(document.getElementById('stopLossPrice').value) || 0;
+  const takeProfitPrice = parseFloat(document.getElementById('takeProfitPrice').value) || 0;
+  const direction = document.getElementById('direction').value;
+  
+  if (openPrice && stopLossPrice && takeProfitPrice && direction) {
+    let risk, reward;
+    if (direction === '多') {
+      risk = openPrice - stopLossPrice;
+      reward = takeProfitPrice - openPrice;
+    } else {
+      risk = stopLossPrice - openPrice;
+      reward = openPrice - takeProfitPrice;
+    }
+    
+    if (risk > 0) {
+      const ratio = (reward / risk).toFixed(2);
+      document.getElementById('riskRewardRatio').value = `${ratio}:1`;
+    }
   }
 }
 
@@ -66,44 +93,56 @@ function renderRecords(records) {
     const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     
     // 设置盈亏的CSS类
-    const profitClass = parseFloat(record.profit) >= 0 ? 'profit-positive' : 'profit-negative';
+    const profitClass = record.actualProfit >= 0 ? 'profit-positive' : 'profit-negative';
+    const statusClass = record.status === '持仓中' ? 'status-open' : 'status-closed';
     
     row.innerHTML = `
       <td>${formattedDate}</td>
       <td>${record.symbol}</td>
       <td>${record.direction}</td>
       <td>${record.openPrice}</td>
-      <td>${record.closePrice}</td>
+      <td>${record.stopLossPrice}</td>
+      <td>${record.takeProfitPrice}</td>
+      <td>${record.riskRewardRatio}</td>
       <td>${record.amount}</td>
-      <td class="${profitClass}">${record.profit}</td>
+      <td class="${statusClass}">${record.status}</td>
+      <td>${record.actualClosePrice || '-'}</td>
+      <td class="${profitClass}">${record.actualProfit || '-'}</td>
       <td>
         ${record.imagePath ? `<img src="file://${record.imagePath}" class="thumbnail" width="50" height="50">` : ''}
       </td>
-      <td>${record.notes || ''}</td>
       <td>
-        <button class="action-btn edit" data-id="${record.id}">编辑</button>
-        <button class="action-btn delete" data-id="${record.id}">删除</button>
+        ${record.status === '持仓中' ? 
+          `<button class="complete-trade-btn" data-id="${record.id}">完成交易</button>` : ''}
+        <button class="delete-btn" data-id="${record.id}">删除</button>
       </td>
     `;
     
     recordsBody.appendChild(row);
   });
   
-  // 添加编辑和删除按钮的事件监听器
-  document.querySelectorAll('.action-btn.edit').forEach(btn => {
-    btn.addEventListener('click', () => openEditModal(btn.dataset.id));
+  // 添加完成交易按钮的事件监听
+  document.querySelectorAll('.complete-trade-btn').forEach(btn => {
+    btn.addEventListener('click', () => openCompleteTradeModal(btn.dataset.id));
   });
   
-  document.querySelectorAll('.action-btn.delete').forEach(btn => {
+  // 添加删除按钮的事件监听器
+  document.querySelectorAll('.delete-btn').forEach(btn => {
     btn.addEventListener('click', () => openDeleteConfirmation(btn.dataset.id));
   });
 }
 
 // 打开添加记录模态框
 function openAddModal() {
-  modalTitle.textContent = '添加交易记录';
+  modalTitle.textContent = '新建交易';
   recordForm.reset();
   currentRecordId = null;
+  currentImageData = null;
+  imagePreview.innerHTML = '';
+  imagePreview.style.display = 'none';
+  
+  // 重置图片输入的required属性
+  imageInput.setAttribute('required', '');
   
   // 设置默认日期为今天
   const today = new Date();
@@ -134,10 +173,11 @@ async function openEditModal(id) {
     document.getElementById('symbol').value = record.symbol;
     document.getElementById('direction').value = record.direction;
     document.getElementById('openPrice').value = record.openPrice;
-    document.getElementById('closePrice').value = record.closePrice;
+    document.getElementById('stopLossPrice').value = record.stopLossPrice;
+    document.getElementById('takeProfitPrice').value = record.takeProfitPrice;
+    document.getElementById('riskRewardRatio').value = record.riskRewardRatio;
     document.getElementById('amount').value = record.amount;
-    document.getElementById('profit').value = record.profit;
-    document.getElementById('notes').value = record.notes || '';
+    document.getElementById('openReason').value = record.openReason || '';
     
     // 显示已有图片
     if (record.imagePath) {
@@ -167,15 +207,15 @@ function openDeleteConfirmation(id) {
 }
 
 // 处理图片预览
-function handleImagePreview(file) {
+function handleImagePreview(file, previewElement = imagePreview) {
   const reader = new FileReader();
   reader.onload = (e) => {
     const img = document.createElement('img');
     img.src = e.target.result;
     img.alt = '预览图片';
-    imagePreview.innerHTML = '';
-    imagePreview.appendChild(img);
-    imagePreview.style.display = 'block';
+    previewElement.innerHTML = '';
+    previewElement.appendChild(img);
+    previewElement.style.display = 'block';
     currentImageData = e.target.result;
   };
   reader.readAsDataURL(file);
@@ -187,8 +227,19 @@ function handleImagePaste(event) {
   for (let item of items) {
     if (item.type.indexOf('image') !== -1) {
       const file = item.getAsFile();
-      handleImagePreview(file);
-      imageInput.files = new DataTransfer().files;
+      // 判断当前激活的模态框
+      if (completeTradeModal.style.display === 'block') {
+        handleImagePreview(file, completeImagePreview);
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        completeImageInput.files = dataTransfer.files;
+      } else if (recordModal.style.display === 'block') {
+        handleImagePreview(file, imagePreview);
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        imageInput.files = dataTransfer.files;
+        imageInput.removeAttribute('required');
+      }
       break;
     }
   }
@@ -205,39 +256,162 @@ function closeImagePreview() {
   imageModal.style.display = 'none';
 }
 
-// 保存记录（添加或更新）
+// 打开完成交易模态框
+async function openCompleteTradeModal(id) {
+  try {
+    currentRecordId = id;
+    const records = await window.electronAPI.getRecords();
+    const record = records.find(r => r.id === id);
+    
+    if (!record) {
+      alert('找不到该记录');
+      return;
+    }
+    
+    // 填充表单
+    document.getElementById('completeTradeId').value = record.id;
+    document.getElementById('completeDate').value = record.date;
+    document.getElementById('completeSymbol').value = record.symbol;
+    document.getElementById('completeDirection').value = record.direction;
+    document.getElementById('completeOpenPrice').value = record.openPrice;
+    document.getElementById('completeStopLossPrice').value = record.stopLossPrice;
+    document.getElementById('completeTakeProfitPrice').value = record.takeProfitPrice;
+    document.getElementById('completeRiskRewardRatio').value = record.riskRewardRatio;
+    document.getElementById('completeAmount').value = record.amount;
+    document.getElementById('completeOpenReason').value = record.openReason || '';
+    
+    // 显示已有图片
+    if (record.imagePath) {
+      const img = document.createElement('img');
+      img.src = `file://${record.imagePath}`;
+      img.alt = '交易图片';
+      const completeImagePreview = document.getElementById('completeImagePreview');
+      completeImagePreview.innerHTML = '';
+      completeImagePreview.appendChild(img);
+      completeImagePreview.style.display = 'block';
+      currentImageData = record.imagePath;
+    }
+    
+    completeTradeModal.style.display = 'block';
+  } catch (error) {
+    console.error('加载记录详情失败:', error);
+    alert('加载记录详情失败，请重试');
+  }
+}
+
+// 完成交易
+async function completeTrade(event) {
+  event.preventDefault();
+  
+  try {
+    const records = await window.electronAPI.getRecords();
+    const record = records.find(r => r.id === currentRecordId);
+    
+    if (!record) {
+      alert('找不到该记录');
+      return;
+    }
+    
+    // 收集所有表单数据
+    const actualClosePrice = parseFloat(document.getElementById('actualClosePrice').value);
+    const reviewNotes = document.getElementById('reviewNotes').value;
+    
+    // 计算实际盈亏
+    let actualProfit;
+    const openPrice = parseFloat(document.getElementById('completeOpenPrice').value);
+    const amount = parseFloat(document.getElementById('completeAmount').value);
+    const direction = document.getElementById('completeDirection').value;
+    
+    if (direction === '多') {
+      actualProfit = ((actualClosePrice - openPrice) / openPrice) * amount;
+    } else {
+      actualProfit = ((openPrice - actualClosePrice) / openPrice) * amount;
+    }
+    
+    // 更新记录
+    const updatedRecord = {
+      ...record,
+      date: document.getElementById('completeDate').value,
+      symbol: document.getElementById('completeSymbol').value,
+      direction: document.getElementById('completeDirection').value,
+      openPrice: parseFloat(document.getElementById('completeOpenPrice').value),
+      stopLossPrice: parseFloat(document.getElementById('completeStopLossPrice').value),
+      takeProfitPrice: parseFloat(document.getElementById('completeTakeProfitPrice').value),
+      riskRewardRatio: document.getElementById('completeRiskRewardRatio').value,
+      amount: parseFloat(document.getElementById('completeAmount').value),
+      openReason: document.getElementById('completeOpenReason').value,
+      status: '已平仓',
+      actualClosePrice,
+      actualProfit: Math.round(actualProfit * 100) / 100,
+      reviewNotes,
+      closedAt: new Date().toISOString()
+    };
+    
+    // 如果有新的图片数据
+    const completeImage = document.getElementById('completeImage');
+    if (completeImage.files.length > 0) {
+      const file = completeImage.files[0];
+      const reader = new FileReader();
+      const imageDataPromise = new Promise((resolve) => {
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsDataURL(file);
+      });
+      updatedRecord.imageData = await imageDataPromise;
+    } else if (currentImageData && currentImageData !== record.imagePath) {
+      updatedRecord.imageData = currentImageData;
+    }
+    
+    await window.electronAPI.updateRecord(updatedRecord);
+    
+    // 关闭模态框并重新加载记录
+    completeTradeModal.style.display = 'none';
+    completeTradeForm.reset();
+    loadRecords();
+  } catch (error) {
+    console.error('完成交易失败:', error);
+    alert('完成交易失败，请重试');
+  }
+}
+
+// 保存记录
 async function saveRecord(event) {
   event.preventDefault();
   
   try {
-    // 收集表单数据
+    // 检查是否有图片（通过文件输入或粘贴）
+    if (!currentImageData && !imageInput.files.length) {
+      alert('请上传或粘贴K线截图');
+      return;
+    }
+
     const recordData = {
       date: document.getElementById('date').value,
       symbol: document.getElementById('symbol').value,
       direction: document.getElementById('direction').value,
       openPrice: parseFloat(document.getElementById('openPrice').value),
-      closePrice: parseFloat(document.getElementById('closePrice').value),
+      stopLossPrice: parseFloat(document.getElementById('stopLossPrice').value),
+      takeProfitPrice: parseFloat(document.getElementById('takeProfitPrice').value),
+      riskRewardRatio: document.getElementById('riskRewardRatio').value,
       amount: parseFloat(document.getElementById('amount').value),
-      profit: parseFloat(document.getElementById('profit').value),
-      notes: document.getElementById('notes').value
+      openReason: document.getElementById('openReason').value,
+      status: '持仓中'
     };
     
-    // 如果有图片数据，添加到记录中
     if (currentImageData) {
       recordData.imageData = currentImageData;
     }
     
-    // 如果是编辑模式，添加ID
     if (currentRecordId) {
       recordData.id = currentRecordId;
       await window.electronAPI.updateRecord(recordData);
     } else {
-      // 添加新记录
       await window.electronAPI.addRecord(recordData);
     }
     
-    // 关闭模态框并重新加载记录
     recordModal.style.display = 'none';
+    recordForm.reset();
+    // 重置图片输入的required属性
+    imageInput.setAttribute('required', '');
     loadRecords();
   } catch (error) {
     console.error('保存记录失败:', error);
@@ -266,6 +440,7 @@ addRecordBtn.addEventListener('click', openAddModal);
 
 // 表单提交
 recordForm.addEventListener('submit', saveRecord);
+completeTradeForm.addEventListener('submit', completeTrade);
 
 // 关闭模态框
 closeModalBtn.addEventListener('click', () => {
@@ -291,43 +466,23 @@ window.addEventListener('click', (event) => {
   if (event.target === confirmModal) {
     confirmModal.style.display = 'none';
   }
+  if (event.target === completeTradeModal) {
+    completeTradeModal.style.display = 'none';
+    completeTradeForm.reset();
+  }
 });
 
 // 自动计算盈亏金额（可选功能）
 const openPriceInput = document.getElementById('openPrice');
-const closePriceInput = document.getElementById('closePrice');
-const amountInput = document.getElementById('amount');
-const profitInput = document.getElementById('profit');
+const stopLossPriceInput = document.getElementById('stopLossPrice');
+const takeProfitPriceInput = document.getElementById('takeProfitPrice');
 const directionSelect = document.getElementById('direction');
 
-// 当价格或数量变化时计算盈亏
-function calculateProfit() {
-  const openPrice = parseFloat(openPriceInput.value) || 0;
-  const closePrice = parseFloat(closePriceInput.value) || 0;
-  const amount = parseFloat(amountInput.value) || 0;
-  const direction = directionSelect.value;
-  
-  if (openPrice && closePrice && amount && direction) {
-    let profit = 0;
-    
-    if (direction === '多') {
-      // 多头：(平仓价 - 开仓价)/开仓价 * 开仓金额
-      profit = ((closePrice - openPrice) / openPrice) * amount;
-    } else if (direction === '空') {
-      // 空头：(开仓价 - 平仓价)/开仓价 * 开仓金额
-      profit = ((openPrice - closePrice) / openPrice) * amount;
-    }
-    
-    // 四舍五入到两位小数
-    profitInput.value = Math.round(profit * 100) / 100;
-  }
-}
-
 // 添加事件监听器
-openPriceInput.addEventListener('input', calculateProfit);
-closePriceInput.addEventListener('input', calculateProfit);
-amountInput.addEventListener('input', calculateProfit);
-directionSelect.addEventListener('change', calculateProfit);
+openPriceInput.addEventListener('input', calculateRiskRewardRatio);
+stopLossPriceInput.addEventListener('input', calculateRiskRewardRatio);
+takeProfitPriceInput.addEventListener('input', calculateRiskRewardRatio);
+directionSelect.addEventListener('change', calculateRiskRewardRatio);
 
 // 图片相关事件监听
 imageInput.addEventListener('change', (e) => {
@@ -352,3 +507,55 @@ imageModal.addEventListener('click', (e) => {
 
 // 添加粘贴事件监听
 document.addEventListener('paste', handleImagePaste);
+
+// 取消完成交易
+cancelCompleteBtn.addEventListener('click', () => {
+  completeTradeModal.style.display = 'none';
+  completeTradeForm.reset();
+});
+
+// 关闭完成交易模态框
+completeTradeModal.querySelector('.close').addEventListener('click', () => {
+  completeTradeModal.style.display = 'none';
+  completeTradeForm.reset();
+});
+
+// 完成交易表单的预期盈亏比计算
+function calculateCompleteRiskRewardRatio() {
+  const openPrice = parseFloat(document.getElementById('completeOpenPrice').value) || 0;
+  const stopLossPrice = parseFloat(document.getElementById('completeStopLossPrice').value) || 0;
+  const takeProfitPrice = parseFloat(document.getElementById('completeTakeProfitPrice').value) || 0;
+  const direction = document.getElementById('completeDirection').value;
+  
+  if (openPrice && stopLossPrice && takeProfitPrice && direction) {
+    let risk, reward;
+    if (direction === '多') {
+      risk = openPrice - stopLossPrice;
+      reward = takeProfitPrice - openPrice;
+    } else {
+      risk = stopLossPrice - openPrice;
+      reward = openPrice - takeProfitPrice;
+    }
+    
+    if (risk > 0) {
+      const ratio = (reward / risk).toFixed(2);
+      document.getElementById('completeRiskRewardRatio').value = `${ratio}:1`;
+    }
+  }
+}
+
+// 添加完成交易表单的图片处理事件监听
+const completeImageInput = document.getElementById('completeImage');
+const completeImagePreview = document.getElementById('completeImagePreview');
+
+completeImageInput.addEventListener('change', (e) => {
+  if (e.target.files.length > 0) {
+    handleImagePreview(e.target.files[0], completeImagePreview);
+  }
+});
+
+completeImagePreview.addEventListener('click', (e) => {
+  if (e.target.tagName === 'IMG') {
+    openImagePreview(e.target.src);
+  }
+});
