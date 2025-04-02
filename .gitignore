@@ -7,7 +7,6 @@ node_modules/
 /dist
 /out
 /release
-/images
 
 # IDE specific
 .vscode/

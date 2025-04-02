@@ -5,14 +5,68 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "electron-builder --win --x64",
+    "dist": "electron-builder",
+    "pack": "electron-builder --dir",
+    "postinstall": "electron-builder install-app-deps"
   },
-  "keywords": ["electron", "trade", "record"],
+  "keywords": [
+    "electron",
+    "trade",
+    "record"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+  },
+  "devDependencies": {
     "electron": "^28.1.0",
+    "electron-builder": "^24.9.1",
     "electron-store": "^8.1.0"
+  },
+  "build": {
+    "appId": "com.trade.record",
+    "productName": "交易记录管理系统",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!dist/**",
+      "images/**",
+      "!node_modules/**"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/",
+        "to": "node_modules/",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "images/app.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "installerIcon": "images/app.ico",
+      "uninstallerIcon": "images/app.ico",
+      "uninstallDisplayName": "交易记录管理系统"
+    },
+    "icon": "images/app.ico"
   }
 }
