@@ -108,6 +108,8 @@ function renderRecords(records) {
       <td class="${statusClass}">${record.status}</td>
       <td>${record.actualClosePrice || '-'}</td>
       <td class="${profitClass}">${record.actualProfit || '-'}</td>
+      <td>${record.openReason ? `<div class="reason-cell">${record.openReason}</div>` : '-'}</td>
+      <td>${record.reviewNotes ? `<div class="reason-cell">${record.reviewNotes}</div>` : '-'}</td>
       <td>
         ${record.imagePath ? `<img src="file://${record.imagePath}" class="thumbnail" width="50" height="50" style="cursor: pointer;" data-image-path="${record.imagePath}">` : ''}
       </td>
